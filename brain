@@ -5,6 +5,10 @@ if [ -z $EDITOR ] ; then
 	EDITOR=vim
 fi
 
+if [[ "$EDITOR" == "micro" ]] ; then
+	EDITOR="micro +9999999"
+fi
+
 datetime=$(date +%Y-%m-%d\ %H:%M:%S)
 date=$(echo $datetime | awk '{print $1}')
 time=$(echo $datetime | awk '{print $2}')
@@ -18,11 +22,13 @@ tmpfile=$(mktemp /tmp/brain.XXXXXX)
 if [ -t 0 ] ; then
 	if [[ "$@" != "" ]] ; then
 		echo "$@" >> $tmpfile
+		echo >> $tmpfile
 	fi
 else
 	while read -r line ; do
 		echo $line >> $tmpfile
 	done
+	echo >> $tmpfile
 fi
 
 eval "$EDITOR $tmpfile"
