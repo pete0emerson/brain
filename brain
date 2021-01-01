@@ -13,19 +13,23 @@ if [ ! -d $BRAIN_DIR/$date ] ; then
 	mkdir -p $BRAIN_DIR/$date
 fi
 
-append=()
+
+text=()
+tags=()
 
 regex="^#"
 for w in $(echo "$@") ; do
 	if [[ $w =~ $regex ]] ; then
-		append+=("${w:1}")
+		tags+=("${w:1}")
+	else
+		text+=("${w}")
 	fi
 done
 
 filename="$BRAIN_DIR/$date/$time"
 
-if [ ${#append[@]} -gt 0 ] ; then
-	IFS=$'\n' sorted=($(sort <<<"${append[*]}"))
+if [ ${#tags[@]} -gt 0 ] ; then
+	IFS=$'\n' sorted=($(sort <<<"${tags[*]}"))
 	unset IFS
 	for w in "${sorted[@]}" ; do
 		filename="${filename}_${w}"
@@ -33,7 +37,7 @@ if [ ${#append[@]} -gt 0 ] ; then
 fi
 
 if [ -t 0 ] ; then
-	echo "$@"  >> $filename
+	echo "${text[*]}" >> $filename
 else
     while read -r line ; do
         echo $line >> $filename
