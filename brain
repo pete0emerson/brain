@@ -1,8 +1,8 @@
 #!/bin/bash
 
 BRAIN_DIR=~/brain
-if [[ "$EDITOR" ==  "" ]] ; then
-	EDITOR=micro
+if [ -z $EDITOR ] ; then
+	EDITOR=vim
 fi
 
 datetime=$(date +%Y-%m-%d\ %H:%M:%S)
@@ -13,33 +13,29 @@ if [ ! -d $BRAIN_DIR/$date ] ; then
 	mkdir -p $BRAIN_DIR/$date
 fi
 
+tmpfile=$(mktemp /tmp/brain.XXXXXX)
 
-text=()
-tags=()
-
-regex="^#"
-for w in $(echo "$@") ; do
-	if [[ $w =~ $regex ]] ; then
-		tags+=("${w:1}")
-	else
-		text+=("${w}")
+if [ -t 0 ] ; then
+	if [[ "$@" != "" ]] ; then
+		echo "$@" >> $tmpfile
 	fi
-done
-
-filename="$BRAIN_DIR/$date/$time"
-
-if [ ${#tags[@]} -gt 0 ] ; then
-	IFS=$'\n' sorted=($(sort <<<"${tags[*]}"))
-	unset IFS
-	for w in "${sorted[@]}" ; do
-		filename="${filename}_${w}"
+else
+	while read -r line ; do
+		echo $line >> $tmpfile
 	done
 fi
 
-if [ -t 0 ] ; then
-	echo "${text[*]}" >> $filename
-else
-    while read -r line ; do
-        echo $line >> $filename
-    done
+eval "$EDITOR $tmpfile"
+
+count=$(wc -c $tmpfile | awk '{print $1}')
+
+if [ $count -ne 0 ] ; then
+	filename="$BRAIN_DIR/$date/$time"
+	keywords=$(head -n1 $tmpfile | tr -Cd 'A-Za-z0-9 _-' | tr 'A-Z' 'a-z' | sed 's/ /_/g')
+	if [[ "$keywords" != "" ]] ; then
+		filename="${filename}.${keywords}"
+	fi
+	cat $tmpfile > $filename
 fi
+
+rm $tmpfile

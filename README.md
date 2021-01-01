@@ -10,15 +10,18 @@ Brain is a very simple CLI tool to store text for later retrieval.
 
 ```
 brain This line I want to store in the brain
-brain This will store some optional tags #example #tags
-cat FILE | brain #more #optional #tags
+echo "Save this stuff to the brain" | brain
+cat FILE | brain
 ```
+
+The file will be saved in ~/brain/${date}/${time}. If there is text on the first line,
+that will be saved in the filename after the time, as well.
 
 # Finding stuff in the brain
 
-There's a simple `search` tool which will find tagged files for you.
+There's a simple `search` tool which will help find files for you.
 
-Find all files with tags 'example' AND 'tags':
+Find all files with 'example' AND 'tags':
 
 ```
 search example tags
