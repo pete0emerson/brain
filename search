@@ -1,0 +1,15 @@
+#!/bin/bash
+
+BRAIN_DIR=~/brain
+
+command="find $BRAIN_DIR -type f"
+
+regex="^#"
+for w in $@ ; do
+	if [[ $w =~ $regex ]] ; then
+		w="${w:1}"
+	fi
+	command="$command | egrep '$w'"
+done
+
+eval "$command"

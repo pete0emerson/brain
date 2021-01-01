@@ -1,0 +1,41 @@
+#!/bin/bash
+
+BRAIN_DIR=~/brain
+if [[ "$EDITOR" ==  "" ]] ; then
+	EDITOR=micro
+fi
+
+datetime=$(date +%Y-%m-%d\ %H:%M:%S)
+date=$(echo $datetime | awk '{print $1}')
+time=$(echo $datetime | awk '{print $2}')
+
+if [ ! -d $BRAIN_DIR/$date ] ; then
+	mkdir -p $BRAIN_DIR/$date
+fi
+
+append=()
+
+regex="^#"
+for w in $(echo "$@") ; do
+	if [[ $w =~ $regex ]] ; then
+		append+=("${w:1}")
+	fi
+done
+
+filename="$BRAIN_DIR/$date/$time"
+
+if [ ${#append[@]} -gt 0 ] ; then
+	IFS=$'\n' sorted=($(sort <<<"${append[*]}"))
+	unset IFS
+	for w in "${sorted[@]}" ; do
+		filename="${filename}_${w}"
+	done
+fi
+
+if [ -t 0 ] ; then
+	echo "$@"  >> $filename
+else
+    while read -r line ; do
+        echo $line >> $filename
+    done
+fi
