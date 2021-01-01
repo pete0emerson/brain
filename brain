@@ -7,6 +7,8 @@ fi
 
 if [[ "$EDITOR" == "micro" ]] ; then
 	EDITOR="micro +9999999"
+elif [[ "$EDITOR" == "vim" ]] ; then
+	EDITOR="vim +"
 fi
 
 datetime=$(date +%Y-%m-%d\ %H:%M:%S)
