@@ -23,7 +23,7 @@ tmpfile=$(mktemp /tmp/brain.XXXXXX)
 
 if [ -t 0 ] ; then
 	if [[ "$@" != "" ]] ; then
-		echo "$@" >> $tmpfile
+		echo "# $@" >> $tmpfile
 		echo >> $tmpfile
 	fi
 else
@@ -43,6 +43,7 @@ if [ $count -ne 0 ] ; then
 	if [[ "$keywords" != "" ]] ; then
 		filename="${filename}.${keywords}"
 	fi
+	filename="$filename.md"
 	cat $tmpfile > $filename
 fi
 
