@@ -6,12 +6,12 @@ Brain is a very simple CLI tool to store text for later retrieval.
 
 `cp brain search ~/bin`
 
-# Saving stuff to the brain
+# Examples of saving text to the brain
 
 ```
-brain This line I want to store in the brain
-echo "Save this stuff to the brain" | brain
-cat FILE | brain
+$ brain This line I want to store in the brain
+$ echo "Save this stuff to the brain" | brain
+$ cat FILE | brain
 ```
 
 The file will be saved in ~/brain/${date}/${time}. If there is text on the first line,
