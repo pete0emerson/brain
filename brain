@@ -39,7 +39,7 @@ count=$(wc -c $tmpfile | awk '{print $1}')
 
 if [ $count -ne 0 ] ; then
 	filename="$BRAIN_DIR/$date/$time"
-	keywords=$(head -n1 $tmpfile | tr -Cd 'A-Za-z0-9 _-' | tr 'A-Z' 'a-z' | sed 's/ /_/g')
+	keywords=$(head -n1 $tmpfile | tr -Cd 'A-Za-z0-9 _-' | tr 'A-Z' 'a-z' | sed 's/^ //g' | sed 's/ /_/g')
 	if [[ "$keywords" != "" ]] ; then
 		filename="${filename}.${keywords}"
 	fi
