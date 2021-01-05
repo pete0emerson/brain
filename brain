@@ -1,14 +1,21 @@
 #!/bin/bash
 
-BRAIN_DIR=~/brain
+# This is where brain files are stored
+if [ -z $BRAIN_DIR ] ; then
+    BRAIN_DIR=~/brain
+fi
+
 if [ -z $EDITOR ] ; then
 	EDITOR=vim
 fi
 
+# Craft a command that puts the editor's cursor at the end of the file
 if [[ "$EDITOR" == "micro" ]] ; then
-	EDITOR="micro +9999999"
+	command="micro +9999999 FILENAME"
+elif [[ "$EDITOR" == "code" ]] ; then
+    command="code -n -w -g FILENAME:9999999"
 elif [[ "$EDITOR" == "vim" ]] ; then
-	EDITOR="vim +"
+	command="vim + FILENAME"
 fi
 
 datetime=$(date +%Y-%m-%d\ %H:%M:%S)
@@ -33,13 +40,15 @@ else
 	echo >> $tmpfile
 fi
 
-eval "$EDITOR $tmpfile"
+command=$(echo $command | sed "s#FILENAME#$tmpfile#g")
+
+eval "$command"
 
 count=$(wc -c $tmpfile | awk '{print $1}')
 
 if [ $count -ne 0 ] ; then
 	filename="$BRAIN_DIR/$date/$time"
-	keywords=$(head -n1 $tmpfile | tr -Cd 'A-Za-z0-9 _-' | tr 'A-Z' 'a-z' | sed 's/ /_/g')
+	keywords=$(head -n1 $tmpfile | tr -Cd 'A-Za-z0-9 _-' | tr 'A-Z' 'a-z' | sed 's/^ //g' | sed 's/ /_/g')
 	if [[ "$keywords" != "" ]] ; then
 		filename="${filename}.${keywords}"
 	fi
