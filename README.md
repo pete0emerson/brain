@@ -4,6 +4,8 @@ Brain is a very simple CLI tool to store text for later retrieval.
 
 # Installation
 
+Copy `brain` and `search` somewhere in your `PATH`.
+
 `cp brain search ~/bin`
 
 # Examples of saving text to the brain
