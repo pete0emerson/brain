@@ -27,6 +27,7 @@ Usage: /Users/pete/bin/brain [ -i ] [ -s ] [ -e ]
 
 $ search -h
 Usage: /Users/pete/bin/search [ -t TIME ] [ PATTERN ]
+   -f       Show the full document instead of just the first line
    -t TIME	Specify a time to search back to (1h, 1d, 7d)
 ```
 
