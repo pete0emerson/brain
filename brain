@@ -1,5 +1,15 @@
 #!/bin/bash
 
+usage() {
+  cat << EOF 1>&2
+Usage: $0 [ -i ] [ -s ] [ -e ]
+   -e Use an \$EDITOR (can be combined with interactive or single line mode)
+   -i Interactive mode
+   -s Single line interactive mode
+EOF
+exit 1
+}
+
 # This is where brain files are stored
 if [ -z $BRAIN_DIR ] ; then
     BRAIN_DIR=~/brain
@@ -8,6 +18,22 @@ fi
 if [ -z $EDITOR ] ; then
 	EDITOR=vim
 fi
+
+EDIT=false
+INTERACTIVE=false
+SINGLE_MODE=false
+while getopts 'eihs' c
+do
+  case $c in
+    e) EDIT=true ;;
+    i) INTERACTIVE=true ;;
+    h) usage ;;
+    s) SINGLE_MODE=true ;;
+  esac
+done
+
+# Remove the parameters
+shift $((OPTIND-1))
 
 # Craft a command that puts the editor's cursor at the end of the file
 if [[ "$EDITOR" == "micro" ]] ; then
@@ -28,7 +54,28 @@ fi
 
 tmpfile=$(mktemp /tmp/brain.XXXXXX)
 
-if [ -t 0 ] ; then
+if [[ "$SINGLE_MODE" == "true" ]] ; then
+	read -p "> "
+	echo "# ${REPLY}" >> $tmpfile
+	echo >> $tmpfile
+elif [[ "$INTERACTIVE" == "true" ]] ; then
+	count=0
+	text=()
+	echo "Press enter on two blank lines to end."
+	while [[ $count -lt 2 ]] ; do
+		read -p "> "
+		text+=("${REPLY}")
+		if [[ "$REPLY" == "" ]] ; then
+			let count=$count+1
+			if [[ $count -lt 2 ]] ; then
+				echo "$REPLY" >> $tmpfile
+			fi
+		else
+			echo "$REPLY" >> $tmpfile
+			count=0
+		fi
+	done
+elif [ -t 0 ] ; then
 	if [[ "$@" != "" ]] ; then
 		echo "# $@" >> $tmpfile
 		echo >> $tmpfile
@@ -40,15 +87,17 @@ else
 	echo >> $tmpfile
 fi
 
-command=$(echo $command | sed "s#FILENAME#$tmpfile#g")
+if [[ "$EDIT" == "true" ]] ; then
+	command=$(echo $command | sed "s#FILENAME#$tmpfile#g")
 
-eval "$command"
+	eval "$command"
+fi
 
 count=$(wc -c $tmpfile | awk '{print $1}')
 
 if [ $count -ne 0 ] ; then
 	filename="$BRAIN_DIR/$date/$time"
-	keywords=$(head -n1 $tmpfile | tr -Cd 'A-Za-z0-9 _-' | tr 'A-Z' 'a-z' | sed 's/^ //g' | sed 's/ /_/g')
+	keywords=$(head -n1 $tmpfile | tr -Cd 'A-Za-z0-9 _-' | sed 's/^ //g' | sed 's/ /_/g')
 	if [[ "$keywords" != "" ]] ; then
 		filename="${filename}.${keywords}"
 	fi

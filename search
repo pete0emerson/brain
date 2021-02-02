@@ -2,7 +2,31 @@
 
 BRAIN_DIR=~/brain
 
-command="find $BRAIN_DIR -type f"
+usage() {
+  cat << EOF 1>&2
+Usage: $0 [ -t TIME ] [ PATTERN ]
+   -t TIME	Specify a time to search back to (1h, 1d, 7d) defaults to '1d'
+EOF
+exit 1
+}
+
+TIME=""
+while getopts 'ht:' c
+do
+  case $c in
+    h) usage ;;
+    t) TIME=$OPTARG ;;
+  esac
+done
+
+# Remove the parameters
+shift $((OPTIND-1))
+
+if [[ "$TIME" == "" ]] ; then
+	TIME=1d
+fi
+
+command="find $BRAIN_DIR -type f -mtime -$TIME"
 
 regex="^#"
 for w in $@ ; do
@@ -12,4 +36,8 @@ for w in $@ ; do
 	command="$command | egrep '$w'"
 done
 
-eval "$command"
+for f in $(eval "$command") ; do
+	header=$(echo "$f" | sed "s#${BRAIN_DIR}/##g" | sed "s#\..*##")
+	echo -n "$header "
+	head -n1 $f
+done
