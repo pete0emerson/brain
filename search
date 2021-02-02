@@ -5,7 +5,7 @@ BRAIN_DIR=~/brain
 usage() {
   cat << EOF 1>&2
 Usage: $0 [ -t TIME ] [ PATTERN ]
-   -f       Show the full document instead of just the first line
+   -f		Show the full document instead of just the first line
    -t TIME	Specify a time to search back to (1h, 1d, 7d) defaults to '1d'
 EOF
 exit 1
