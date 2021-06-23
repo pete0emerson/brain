@@ -39,7 +39,7 @@ Usage: ./brain [ -i -e ] [ -s [-f -r -t TIME]] PATTERN
    		defaults to '1d'
 ```
 
-The file will be saved in ~/brain/${date}/${time}. If there is text on the first line,
+The file will be saved in `~/brain/${date}/${time}`. If there is text on the first line,
 that will be saved in the filename after the time, as well.
 
 # Finding stuff in the brain
