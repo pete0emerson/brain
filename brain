@@ -1,108 +1,180 @@
 #!/bin/bash
 
+# Help!
 usage() {
   cat << EOF 1>&2
-Usage: $0 [ -i ] [ -s ] [ -e ]
-   -e Use an \$EDITOR (can be combined with interactive or single line mode)
+Usage: $0 [ -i -e ] [ -s [-f -r -t TIME]] PATTERN
+   -h Show help
+   -d Turn on debug mode
+
+	Creation flags
+
+   -e Use an \$EDITOR (can be combined with interactive mode)
    -i Interactive mode
-   -s Single line interactive mode
+
+	Document search mode (-s)
+
+   -s Use search mode instead of creation mode
+   -f Show the full document(s) instead of just the first line
+   		(search still matches the first line only)
+   -r Reverse the output (newest entries on bottom)
+   -t TIME	Specify a time to search back to (10m, 1h, 1d, 7d)
+   		defaults to '1d'
 EOF
 exit 1
 }
 
 # This is where brain files are stored
-if [ -z $BRAIN_DIR ] ; then
-    BRAIN_DIR=~/brain
+if [ -z ${BRAIN_DIR} ] ; then
+    brain_dir=~/brain
+else
+	brain_dir=${BRAIN_DIR}
 fi
 
-if [ -z $EDITOR ] ; then
-	EDITOR=vim
+# Set the editor to vim if it's not already set
+if [ -z ${EDITOR} ] ; then
+	editor=vim
+else
+	editor=${EDITOR}
 fi
 
-EDIT=false
-INTERACTIVE=false
-SINGLE_MODE=false
-while getopts 'eihs' c
+# Get options from the user
+edit=false
+interactive=false
+search_mode=false
+time=""
+full=false
+reverse=false
+debug_mode=false
+while getopts 'eihsfrt:d' c
 do
-  case $c in
-    e) EDIT=true ;;
-    i) INTERACTIVE=true ;;
+  case ${c} in
+    e) edit=true ;;
+    i) interactive=true ;;
     h) usage ;;
-    s) SINGLE_MODE=true ;;
+    s) search_mode=true ;;
+    f) full=true ;;
+    r) reverse=true ;;
+    t) time=$OPTARG ;;
+	d) debug_mode=true ;;
   esac
 done
 
-# Remove the parameters
+# Remove the getopt parameters
 shift $((OPTIND-1))
 
+# Handle search mode
+if [[ "${search_mode}" == "true" ]] ; then
+	# Default to 1 day
+	if [[ "${time}" == "" ]] ; then
+		time=1d
+	fi
+
+	command="find ${brain_dir} -type f -mtime -${time}"
+
+	regex="^#"
+
+	for word in $@ ; do
+		# Strip leading # if it is there
+		if [[ ${word} =~ ${regex} ]] ; then
+			word="${word:1}"
+		fi
+		command="${command} | egrep '${word}'"
+	done
+
+	if [[ "${reverse}" == "false" ]] ; then
+		command="${command} | sort"
+	fi
+
+	if [[ "${debug_mode}" == "true" ]] ; then
+		>&2 echo "DEBUG Running: ${command}"
+	fi
+
+	for f in $(eval "${command}") ; do
+		header=$(echo "${f}" | sed "s#${brain_dir}/##g" | sed "s#\..*##")
+		if [[ "${full}" == "true" ]] ; then
+			echo "### $header"
+			echo
+			cat ${f}
+			echo
+		else
+			echo -n "${header} "
+			head -n1 ${f}
+		fi
+	done
+	exit 0
+fi
+
+# Handle creation mode
+
 # Craft a command that puts the editor's cursor at the end of the file
-if [[ "$EDITOR" == "micro" ]] ; then
+if [[ "${editor}" == "micro" ]] ; then
 	command="micro +9999999 FILENAME"
-elif [[ "$EDITOR" == "code" ]] ; then
+elif [[ "${editor}" == "code" ]] ; then
     command="code -n -w -g FILENAME:9999999"
-elif [[ "$EDITOR" == "vim" ]] ; then
+elif [[ "${editor}" == "vim" ]] ; then
 	command="vim + FILENAME"
 fi
 
 datetime=$(date +%Y-%m-%d\ %H:%M:%S)
-date=$(echo $datetime | awk '{print $1}')
-time=$(echo $datetime | awk '{print $2}')
+date=$(echo ${datetime} | awk '{print $1}')
+time=$(echo ${datetime} | awk '{print $2}')
 
-if [ ! -d $BRAIN_DIR/$date ] ; then
-	mkdir -p $BRAIN_DIR/$date
+if [ ! -d ${brain_dir}/${date} ] ; then
+	mkdir -p ${brain_dir}/${date}
 fi
 
 tmpfile=$(mktemp /tmp/brain.XXXXXX)
 
-if [[ "$SINGLE_MODE" == "true" ]] ; then
-	read -p "> "
-	echo "# ${REPLY}" >> $tmpfile
-	echo >> $tmpfile
-elif [[ "$INTERACTIVE" == "true" ]] ; then
+if [[ "${interactive}" == "true" ]] ; then
 	count=0
 	text=()
 	echo "Press enter on two blank lines to end."
-	while [[ $count -lt 2 ]] ; do
+	while [[ ${count} -lt 2 ]] ; do
 		read -p "> "
 		text+=("${REPLY}")
-		if [[ "$REPLY" == "" ]] ; then
-			let count=$count+1
-			if [[ $count -lt 2 ]] ; then
-				echo "$REPLY" >> $tmpfile
+		if [[ "${REPLY}" == "" ]] ; then
+			let count=${count}+1
+			if [[ ${count} -lt 2 ]] ; then
+				echo "${REPLY}" >> ${tmpfile}
 			fi
 		else
-			echo "$REPLY" >> $tmpfile
+			echo "${REPLY}" >> ${tmpfile}
 			count=0
 		fi
 	done
+# Default mode of 'brain Capture this statement'
 elif [ -t 0 ] ; then
 	if [[ "$@" != "" ]] ; then
-		echo "# $@" >> $tmpfile
-		echo >> $tmpfile
+		echo "# $@" >> ${tmpfile}
+		echo >> ${tmpfile}
 	fi
 else
+	# We can pipe something to brain as well
 	while read -r line ; do
-		echo $line >> $tmpfile
+		echo "${line}" >> ${tmpfile}
 	done
-	echo >> $tmpfile
+	echo >> ${tmpfile}
 fi
 
-if [[ "$EDIT" == "true" ]] ; then
-	command=$(echo $command | sed "s#FILENAME#$tmpfile#g")
-
-	eval "$command"
+# Drop into an editor if we've been asked to do so
+if [[ "${edit}" == "true" ]] ; then
+	command=$(echo ${command} | sed "s#FILENAME#${tmpfile}#g")
+	eval "${command}"
 fi
 
-count=$(wc -c $tmpfile | awk '{print $1}')
-
-if [ $count -ne 0 ] ; then
-	filename="$BRAIN_DIR/$date/$time"
-	keywords=$(head -n1 $tmpfile | tr -Cd 'A-Za-z0-9 _-' | sed 's/^ //g' | sed 's/ /_/g')
-	if [[ "$keywords" != "" ]] ; then
+# If we have a non-zero length file, store the file
+count=$(wc -c ${tmpfile} | awk '{print $1}')
+if [ ${count} -ne 0 ] ; then
+	filename="${brain_dir}/${date}/${time}"
+	# Create keywords with characters that make reasonable sense
+	keywords=$(head -n1 ${tmpfile} | tr -Cd 'A-Za-z0-9 _-' | sed 's/^ //g' | sed 's/ /_/g')
+	if [[ "${keywords}" != "" ]] ; then
 		filename="${filename}.${keywords}"
 	fi
-	filename="$filename.md"
-	cat $tmpfile > $filename
+	filename="${filename}.md"
+	cat ${tmpfile} > ${filename}
 fi
 
-rm $tmpfile
+# Clean up!
+rm ${tmpfile}
